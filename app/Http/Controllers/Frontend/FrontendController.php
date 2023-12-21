@@ -25,6 +25,7 @@ use App\Models\Review;
 use App\Models\SectionTitle;
 use App\Models\TermsAndCondition;
 use App\Models\Testimonial;
+use App\Models\Tipo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -36,7 +37,7 @@ use function Ramsey\Uuid\v1;
 
 class FrontendController extends Controller
 {
-    function index() : View
+    function index(): View
     {
         $sectionTitle = SectionTitle::first();
         $hero = Hero::first();
@@ -47,46 +48,48 @@ class FrontendController extends Controller
         $counter = Counter::first();
         $testimonials = Testimonial::where('status', 1)->get();
         $blogs = Blog::with('author')->where('status', 1)->orderBy('id', 'Desc')->take(3)->get();
+        $tipos = Tipo::where('status', 1)->get();
 
-        $featuredCategories = Category::withCount(['listings'=> function($query){
+        $featuredCategories = Category::withCount(['listings' => function ($query) {
             $query->where('is_approved', 1);
         }])->where(['show_at_home' => 1, 'status' => 1])->take(6)->get();
 
         // Featured location
-        $featuredLocations = Location::with(['listings' => function($query) {
-            $query->withAvg(['reviews' => function($query) {
+        $featuredLocations = Location::with(['listings' => function ($query) {
+            $query->withAvg(['reviews' => function ($query) {
                 $query->where('is_approved', 1);
-            }], 'rating')->withCount(['reviews' => function($query) {
+            }], 'rating')->withCount(['reviews' => function ($query) {
                 $query->where('is_approved', 1);
             }])->where(['status' => 1, 'is_approved' => 1])->orderBy('id', 'desc');
         }])->where(['show_at_home' => 1, 'status' => 1])->get();
 
         $featuredLocations = Location::where(['show_at_home' => 1, 'status' => 1])->get();
 
-        $featuredLocations->each(function($location) {
+        $featuredLocations->each(function ($location) {
             $location->listings = $location->listings()
-            ->withAvg(['reviews' => function($query) {
-                $query->where('is_approved', 1);
-            }], 'rating')
-            ->withCount(['reviews' => function($query) {
-                $query->where('is_approved', 1);
-            }])
-            ->where(['status' => 1, 'is_approved' => 1])
-            ->orderBy('id', 'desc')
-            ->take(8)->get();
+                ->withAvg(['reviews' => function ($query) {
+                    $query->where('is_approved', 1);
+                }], 'rating')
+                ->withCount(['reviews' => function ($query) {
+                    $query->where('is_approved', 1);
+                }])
+                ->where(['status' => 1, 'is_approved' => 1])
+                ->orderBy('id', 'desc')
+                ->take(8)->get();
         });
 
 
         // featured listings
-        $featuredListings = Listing::withAvg(['reviews' => function($query) {
-                $query->where('is_approved', 1);
-            }], 'rating')->withCount(['reviews' => function($query) {
-                $query->where('is_approved', 1);
-            }])
+        $featuredListings = Listing::withAvg(['reviews' => function ($query) {
+            $query->where('is_approved', 1);
+        }], 'rating')->withCount(['reviews' => function ($query) {
+            $query->where('is_approved', 1);
+        }])
             ->where(['status' => 1, 'is_approved' => 1, 'is_featured' => 1])
             ->orderBy('id', 'desc')->limit(10)->get();
 
-        return view('frontend.home.index',
+        return view(
+            'frontend.home.index',
             compact(
                 'hero',
                 'categories',
@@ -99,44 +102,48 @@ class FrontendController extends Controller
                 'counter',
                 'testimonials',
                 'blogs',
-                'sectionTitle'
-            ));
+                'sectionTitle',
+                'tipos'
+            )
+        );
     }
 
-    function listings(Request $request) : View {
+    function listings(Request $request): View
+    {
 
-        $listings = Listing::withAvg(['reviews' => function($query) {
+
+        $tipos = Tipo::where('status', 1)->get();
+        $listings = Listing::withAvg(['reviews' => function ($query) {
             $query->where('is_approved', 1);
         }], 'rating')
-        ->withCount(['reviews' => function($query) {
-            $query->where('is_approved', 1);
-        }])->with(['category', 'location'])->where(['status' => 1, 'is_approved' => 1]);
+            ->withCount(['reviews' => function ($query) {
+                $query->where('is_approved', 1);
+            }])->with(['category', 'location'])->where(['status' => 1, 'is_approved' => 1]);
 
-        $listings->when($request->has('category') && $request->filled('category'), function($query) use ($request){
-            $query->whereHas('category', function($query) use ($request) {
+        $listings->when($request->has('category') && $request->filled('category'), function ($query) use ($request) {
+            $query->whereHas('category', function ($query) use ($request) {
                 $query->where('slug', $request->category);
             });
         });
 
-        $listings->when($request->has('search') && $request->filled('search') , function($query) use ($request) {
-            $query->where(function($subQuery) use ($request) {
-                $subQuery->where('title', 'like', '%' . $request->search . '%')
-                ->orWhere('description', 'like', '%' . $request->search . '%');
+        $listings->when($request->has('search') && $request->filled('search'), function ($query) use ($request) {
+            $query->where(function ($subQuery) use ($request) {
+                $subQuery->where('tipo',  $request->search);
             });
         });
 
-        $listings->when($request->has('location') && $request->filled('location') , function($query) use ($request) {
-            $query->whereHas('location', function($subQuery) use ($request) {
+        $listings->when($request->has('location') && $request->filled('location'), function ($query) use ($request) {
+            $query->whereHas('location', function ($subQuery) use ($request) {
                 $subQuery->where('slug', $request->location);
             });
         });
 
-        $listings->when($request->has('amenity') && is_array($request->amenity) , function($query) use ($request) {
+        $listings->when($request->has('amenity') && is_array($request->amenity), function ($query) use ($request) {
 
             $amenityIds = Amenity::whereIn('slug', $request->amenity)->pluck('id');
 
-            $query->whereHas('amenities', function($subQuery) use ($amenityIds) {
-                $subQuery->whereIn('amenity_id', $amenityIds);
+            $query->whereHas('amenities', function ($subQuery) use ($amenityIds) {
+                $subQuery->whereIn('id', $amenityIds);
             });
         });
 
@@ -146,20 +153,22 @@ class FrontendController extends Controller
         $locations = Location::where('status', 1)->get();
         $amenities = Amenity::where('status', 1)->get();
 
-        return view('frontend.pages.listings', compact('listings', 'categories', 'locations', 'amenities'));
+        return view('frontend.pages.listings', compact('listings', 'categories', 'locations', 'amenities', 'tipos'));
     }
 
-    function listingModal(string $id) {
+    function listingModal(string $id)
+    {
         $listing = Listing::findOrFail($id);
 
         return view('frontend.layouts.ajax-listing-modal', compact('listing'))->render();
     }
 
-    function showListing(string $slug) : View {
+    function showListing(string $slug): View
+    {
 
-        $listing = Listing::withAvg(['reviews' => function($query){
-                $query->where('is_approved', 1);
-            }], 'rating')
+        $listing = Listing::withAvg(['reviews' => function ($query) {
+            $query->where('is_approved', 1);
+        }], 'rating')
             ->where(['status' => 1])->where('slug', $slug)->firstOrFail();
 
         $listing->increment('views');
@@ -172,33 +181,36 @@ class FrontendController extends Controller
         return view('frontend.pages.listing-view', compact('listing', 'smellerListings', 'openStatus', 'reviews'));
     }
 
-    function listingScheduleStatus(Listing $listing) : ?string {
+    function listingScheduleStatus(Listing $listing): ?string
+    {
         $openStatus = '';
         $day = ListingSchedule::where('listing_id', $listing->id)->where('day', \Str::lower(date('l')))->first();
-        if($day) {
+        if ($day) {
             $startTime = strtotime($day->start_time);
             $endTime = strtotime($day->end_time);
-            if(time() >= $startTime && time() <= $endTime) {
+            if (time() >= $startTime && time() <= $endTime) {
                 $openStatus = 'open';
-            }else {
+            } else {
                 $openStatus = 'close';
             }
         }
         return $openStatus;
     }
 
-    function showPackages() : View {
+    function showPackages(): View
+    {
         $packages = Package::where('status', 1)->get();
         return view('frontend.pages.packages', compact('packages'));
     }
 
-    function checkout(string $id) : View | RedirectResponse {
+    function checkout(string $id): View | RedirectResponse
+    {
         $package = Package::findOrFail($id);
 
         /** store package id in session */
         Session::put('selected_package_id', $package->id);
         /** if package is free then direct place order */
-        if($package->type === 'free' || $package->price == 0) {
+        if ($package->type === 'free' || $package->price == 0) {
             $paymentInfo = [
                 'transaction_id' => uniqid(),
                 'payment_method' => 'free',
@@ -215,7 +227,8 @@ class FrontendController extends Controller
         return view('frontend.pages.checkout', compact('package'));
     }
 
-    function submitReview(Request $request) : RedirectResponse {
+    function submitReview(Request $request): RedirectResponse
+    {
         $request->validate([
             'rating' => ['required', 'in:1,2,3,4,5'],
             'review' => ['required', 'max:500'],
@@ -223,7 +236,7 @@ class FrontendController extends Controller
         ]);
 
         $prevReview = Review::where(['listing_id' => $request->listing_id, 'user_id' => auth()->user()->id])->exists();
-        if($prevReview) {
+        if ($prevReview) {
             throw ValidationException::withMessages(['You already added a review for this listing!']);
         }
 
@@ -240,7 +253,8 @@ class FrontendController extends Controller
     }
 
     /** Submit Claim */
-    function submitClaim(Request $request) : RedirectResponse {
+    function submitClaim(Request $request): RedirectResponse
+    {
         $request->validate([
             'name' => ['required', 'max:255'],
             'email' => ['required', 'max:255', 'email'],
@@ -258,34 +272,36 @@ class FrontendController extends Controller
         toastr()->success('Submitted Successfully!');
 
         return redirect()->back();
-
     }
 
-    function blog(Request $request) : View {
+    function blog(Request $request): View
+    {
         $blogs = Blog::where('status', 1)->orderBy('id', 'Desc')
-            ->when($request->has('search') && $request->filled('search'), function($query) use ($request) {
-                $query->where('title', 'LIKE', '%'.$request->search.'%')
-                ->orWhere('description', 'LIKE', '%'.$request->search.'%');
+            ->when($request->has('search') && $request->filled('search'), function ($query) use ($request) {
+                $query->where('title', 'LIKE', '%' . $request->search . '%')
+                    ->orWhere('description', 'LIKE', '%' . $request->search . '%');
             })
-            ->when($request->has('category') && $request->filled('category'), function($query) use ($request) {
+            ->when($request->has('category') && $request->filled('category'), function ($query) use ($request) {
                 $category = BlogCategory::select('id', 'slug')->where('slug', $request->category)->first();
                 $query->where('blog_category_id', $category->id);
             })
             ->paginate(9);
         return view('frontend.pages.blog', compact('blogs'));
     }
-    function blogShow(string $slug) : View {
+    function blogShow(string $slug): View
+    {
         $blog = Blog::with(['category', 'comments'])->where(['slug' => $slug, 'status' => 1])->firstOrFail();
         $popularBlogs = Blog::select(['id', 'title', 'slug', 'created_at', 'image'])->where('id', '!=', $blog->id)
             ->where('is_popular', 1)->orderBy('id', 'DESC')->take(5)->get();
-        $categories = BlogCategory::withCount(['blogs' => function($query){
+        $categories = BlogCategory::withCount(['blogs' => function ($query) {
             $query->where('status', 1);
         }])->where('status', 1)->get();
 
         return view('frontend.pages.blog-show', compact('blog', 'categories', 'popularBlogs'));
     }
 
-    function blogCommentStore(Request $request) : RedirectResponse {
+    function blogCommentStore(Request $request): RedirectResponse
+    {
         $request->validate([
             'comment' => ['required', 'string', 'max:500']
         ]);
@@ -301,23 +317,25 @@ class FrontendController extends Controller
         return redirect()->back();
     }
 
-    function aboutIndex() : View {
+    function aboutIndex(): View
+    {
         $sectionTitle = SectionTitle::first();
         $about = AboutUs::first();
         $ourFeatures = OurFeature::where('status', 1)->get();
-        $featuredCategories = Category::withCount(['listings'=> function($query){
+        $featuredCategories = Category::withCount(['listings' => function ($query) {
             $query->where('is_approved', 1);
         }])->where(['show_at_home' => 1, 'status' => 1])->take(6)->get();
         $counter = Counter::first();
         return view('frontend.pages.about', compact('about', 'ourFeatures', 'featuredCategories', 'counter', 'sectionTitle'));
     }
 
-    function contactIndex() : View {
+    function contactIndex(): View
+    {
         $contact = Contact::first();
         return view('frontend.pages.contact', compact('contact'));
     }
 
-    function contactMessage(Request $request) : RedirectResponse
+    function contactMessage(Request $request): RedirectResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:200'],
@@ -333,12 +351,14 @@ class FrontendController extends Controller
         return redirect()->back();
     }
 
-    function privacyPolicy() : View {
+    function privacyPolicy(): View
+    {
         $privacyPolicy = PrivacyPolicy::first();
         return view('frontend.pages.privacy-policy', compact('privacyPolicy'));
     }
 
-    function termsAndCondition() : View {
+    function termsAndCondition(): View
+    {
         $termsAndCondition = TermsAndCondition::first();
         return view('frontend.pages.terms-and-condition', compact('termsAndCondition'));
     }

@@ -816,7 +816,7 @@ button {
 	color: var(--colorBlack);
 	text-transform: capitalize;
 	font-weight: 600;
-	font-size: 25px;
+	font-size: 23px;
 	margin: 15px 0px;
 	transition: all linear .3s;
 	-webkit-transition: all linear .3s ease;

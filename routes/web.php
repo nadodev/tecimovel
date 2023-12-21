@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', [FrontendController::class, 'index'])->name('home');
-Route::get('listings', [FrontendController::class, 'listings'])->name('listings');
+Route::get('imoveis', [FrontendController::class, 'listings'])->name('listings');
 Route::get('listing-modal/{id}', [FrontendController::class, 'listingModal'])->name('listing-modal');
 Route::get('listing/{slug}', [FrontendController::class, 'showListing'])->name('listing.show');
 Route::get('packages', [FrontendController::class, 'showPackages'])->name('packages');
@@ -47,16 +47,16 @@ Route::get('blog', [FrontendController::class, 'blog'])->name('blog.index');
 Route::get('blog/{slug}', [FrontendController::class, 'blogShow'])->name('blog.show');
 Route::post('blog-comment', [FrontendController::class, 'blogCommentStore'])->name('blog-comment.store');
 // About Route
-Route::get('about-us', [FrontendController::class, 'aboutIndex'])->name('about.index');
+Route::get('sobre-nos', [FrontendController::class, 'aboutIndex'])->name('about.index');
 
 // Contact Route
-Route::get('contact', [FrontendController::class, 'contactIndex'])->name('contact.index');
+Route::get('contato', [FrontendController::class, 'contactIndex'])->name('contact.index');
 Route::post('contact', [FrontendController::class, 'contactMessage'])->name('contact.message');
 
 // Privacy Policy Route
-Route::get('privacy-policy', [FrontendController::class, 'privacyPolicy'])->name('privacy-policy.index');
+Route::get('politica-privacidade', [FrontendController::class, 'privacyPolicy'])->name('privacy-policy.index');
 // Terms and Condition Route
-Route::get('terms-and-condition', [FrontendController::class, 'termsAndCondition'])->name('terms-and-condition.index');
+Route::get('termos-e-condicao', [FrontendController::class, 'termsAndCondition'])->name('terms-and-condition.index');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -64,7 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::group(['middleware' => 'auth', 'prefix' => 'user', 'as' => 'user.'], function() {
+Route::group(['middleware' => 'auth', 'prefix' => 'user', 'as' => 'user.'], function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -98,12 +98,11 @@ Route::group(['middleware' => 'auth', 'prefix' => 'user', 'as' => 'user.'], func
 
     /** Review Routes */
     Route::resource('reviews', ReviewController::class);
-
 });
 
 
 
-Route::group(['middleware' => 'auth'], function(){
+Route::group(['middleware' => 'auth'], function () {
     /** Payment Routes */
     Route::get('payment/success', [PaymentController::class, 'paymentSuccess'])->name('payment.success');
     Route::get('payment/cancel', [PaymentController::class, 'paymentCancel'])->name('payment.cancel');
@@ -119,9 +118,6 @@ Route::group(['middleware' => 'auth'], function(){
     /** razorpay Routes */
     Route::get('razorpay/redirect', [PaymentController::class, 'razorpayRedirect'])->name('razorpay.redirect');
     Route::get('razorpay/payment', [PaymentController::class, 'payWithRazorpay'])->name('razorpay.payment');
-
-
-
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

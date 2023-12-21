@@ -11,21 +11,23 @@
             </div>
             <div class="row">
                 @foreach ($blogs as $blog)
-                <div class="col-xl-4 col-md-6 col-lg-4">
-                    <div class="single_blog">
-                        <div class="img">
-                            <img src="{{ asset($blog->image) }}" alt="bloh images" class="img-fluid w-100">
-                        </div>
-                        <div class="text">
-                            <span><i class="fal fa-calendar-alt"></i> {{ date('d M Y', strtotime($blog->created_at)) }}</span>
-                            <span><i class="fas fa-user"></i> by {{ $blog->author->name }}</span>
-                            <a href="{{ route('blog.show', $blog->slug) }}" class="title">{{ truncate($blog->title) }}</a>
-                            <p>{{ truncate(strip_tags($blog->description), 200) }} </p>
-                            <a class="read_btn" href="{{ route('blog.show', $blog->slug) }}">learn more <i
-                                    class="far fa-chevron-double-right"></i></a>
+                    <div class="col-xl-4 col-md-6 col-lg-4">
+                        <div class="single_blog">
+                            <div class="img">
+                                <img src="{{ asset($blog->image) }}" alt="bloh images" class="img-fluid w-100">
+                            </div>
+                            <div class="text">
+                                <span><i class="fal fa-calendar-alt"></i>
+                                    {{ date('d M Y', strtotime($blog->created_at)) }}</span>
+                                <span><i class="fas fa-user"></i> by {{ $blog->author->name }}</span>
+                                <a href="{{ route('blog.show', $blog->slug) }}"
+                                    class="title">{{ truncate($blog->title) }}</a>
+                                <p>{{ truncate(strip_tags($blog->description), 200) }} </p>
+                                <a class="read_btn" href="{{ route('blog.show', $blog->slug) }}">Leia mais <i
+                                        class="far fa-chevron-double-right"></i></a>
+                            </div>
                         </div>
                     </div>
-                </div>
                 @endforeach
 
             </div>
